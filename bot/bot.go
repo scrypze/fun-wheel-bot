@@ -48,7 +48,7 @@ func main() {
 
 			inlineKeyboard := tgbotapi.NewInlineKeyboardMarkup(
 				[]tgbotapi.InlineKeyboardButton{
-					tgbotapi.NewInlineKeyboardButtonURL("Перейти на веб-страницу с колесом фортуны", "http://localhost:8080/wheel"),
+					tgbotapi.NewInlineKeyboardButtonURL("Перейти на веб-страницу с колесом фортуны", "http://scrypze.ru"),
 				},
 			)
 
