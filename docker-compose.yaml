@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  grpc-server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    networks:
+      - fun-wheel-network
+
+  telegram-bot:
+    build:
+      context: .
+      dockerfile: bot/Dockerfile
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+    depends_on:
+      - grpc-server
+    networks:
+      - fun-wheel-network
+
+  envoy:
+    image: envoyproxy/envoy:v1.28-latest
+    volumes:
+      - ./envoy.yaml:/etc/envoy/envoy.yaml:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      - grpc-server
+    networks:
+      - fun-wheel-network
+
+  web:
+    image: nginx:alpine
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - envoy
+    networks:
+      - fun-wheel-network
+
+networks:
+  fun-wheel-network:
+    driver: bridge 

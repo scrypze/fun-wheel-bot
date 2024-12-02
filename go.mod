@@ -1,12 +1,10 @@
 module fun-wheel-bot
 
-go 1.22.7
-
-toolchain go1.22.9
+go 1.22
 
 require (
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
-	google.golang.org/grpc v1.68.0
+	google.golang.org/grpc v1.67.0
 	google.golang.org/protobuf v1.35.2
 )
 

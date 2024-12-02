@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fun Wheel</title>
+</head>
+<body>
+    <h1>Fun Wheel</h1>
+    <button onclick="createWheel()">Create Wheel</button>
+    <button onclick="addOption()">Add Option</button>
+    <button onclick="spinWheel()">Spin Wheel</button>
+
+    <script>
+        function createWheel() {
+            fetch('/v1/createwheel', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ chat_id: 123 })
+            }).then(response => response.json()).then(data => alert(data.message));
+        }
+
+        function addOption() {
+            fetch('/v1/addoption', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ chat_id: 123, option: "Option 1" })
+            }).then(response => response.json()).then(data => alert(data.message));
+        }
+
+        function spinWheel() {
+            fetch('/v1/spinwheel', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ chat_id: 123 })
+            }).then(response => response.json()).then(data => alert(data.result));
+        }
+    </script>
+</body>
+</html>
