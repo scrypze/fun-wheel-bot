@@ -16,8 +16,10 @@ static_resources:
                     - name: local_service
                       domains: ["*"]
                       routes:
-                        - match: { prefix: "/" }
-                          route: { cluster: fun_wheel_service }
+                        - match: { prefix: "/v1/" }
+                          route:
+                            cluster: fun_wheel_service
+                            prefix_rewrite: "/"
                 http_filters:
                   - name: envoy.filters.http.grpc_http1_bridge
                   - name: envoy.filters.http.router
