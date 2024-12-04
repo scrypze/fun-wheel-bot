@@ -77,7 +77,14 @@ func main() {
         log.Fatalf("failed to listen: %v", err)
     }
     
-    s := grpc.NewServer()
+    s := grpc.NewServer(
+        grpc.UnaryInterceptor(func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+            log.Printf("Received request: method=%s, request=%+v", info.FullMethod, req)
+            resp, err := handler(ctx, req)
+            log.Printf("Sending response: %+v, error: %v", resp, err)
+            return resp, err
+        }),
+    )
     
     pb.RegisterFunWheelServiceServer(s, &server{
         wheels: make(map[int64][]string),

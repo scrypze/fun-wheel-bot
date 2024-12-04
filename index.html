@@ -79,18 +79,19 @@
 
         function createWheel() {
             console.log('Creating wheel...');
+            const requestData = { chat_id: 123 };
+            console.log('Sending request:', requestData);
+            
             fetch('/v1/createwheel', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/grpc-web+json',
-                    'Accept': 'application/grpc-web+json'
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    chatId: 123
-                })
+                body: JSON.stringify(requestData)
             })
             .then(response => {
-                console.log('Response:', response);
+                console.log('Response status:', response.status);
+                console.log('Response headers:', Array.from(response.headers.entries()));
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
