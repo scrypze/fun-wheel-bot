@@ -85,7 +85,8 @@
             fetch('http://localhost:8080/v1/createwheel', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify(requestData)
             })
@@ -115,10 +116,11 @@
             if (!option) return;
 
             console.log('Adding option:', option);
-            fetch('/v1/addoption', {
+            fetch('http://localhost:8080/v1/addoption', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify({ chat_id: 123, option: option })
             })
@@ -165,10 +167,11 @@
             spinning = true;
             console.log('Spinning wheel...');
 
-            fetch('/v1/spinwheel', {
+            fetch('http://localhost:8080/v1/spinwheel', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify({ chat_id: 123 })
             })
