@@ -20,8 +20,13 @@ static_resources:
                     - name: local_service
                       domains: ["*"]
                       routes:
-                        - match: { prefix: "/" }
+                        - match: { prefix: "/v1/" }
                           route: { cluster: fun_wheel_service }
+                        - match: { prefix: "/" }
+                          direct_response:
+                            status: 200
+                            body: 
+                              filename: "/etc/envoy/index.html"
                 http_filters:
                   - name: envoy.filters.http.grpc_http1_bridge
                   - name: envoy.filters.http.router
