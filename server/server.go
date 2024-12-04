@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"math/rand"
+	"time"
 
 	"google.golang.org/grpc"
 	pb "fun-wheel-bot/grpc" 
@@ -16,35 +17,71 @@ const port = ":50051"
 type server struct {
     pb.UnimplementedFunWheelServiceServer
     wheels map[int64][]string
+    rnd    *rand.Rand
 }
 
 func (s *server) CreateWheel(ctx context.Context, req *pb.CreateWheelRequest) (*pb.CreateWheelResponse, error) {
-    s.wheels[req.GetChatId()] = []string{}
-    return &pb.CreateWheelResponse{Message: "Wheel created!"}, nil
+    log.Printf("Creating wheel for chat_id: %d", req.GetChatId())
+    s.wheels[req.GetChatId()] = make([]string, 0)
+    return &pb.CreateWheelResponse{Message: "Колесо создано!"}, nil
 }
 
 func (s *server) AddOption(ctx context.Context, req *pb.AddOptionRequest) (*pb.AddOptionsResponse, error) {
+    log.Printf("Adding option '%s' for chat_id: %d", req.GetOption(), req.GetChatId())
+    
+    if _, exists := s.wheels[req.GetChatId()]; !exists {
+        return nil, fmt.Errorf("колесо не найдено, сначала создайте его")
+    }
+    
     s.wheels[req.GetChatId()] = append(s.wheels[req.GetChatId()], req.GetOption())
-    return &pb.AddOptionsResponse{Message: "Option added!"}, nil
+    return &pb.AddOptionsResponse{Message: "Опция добавлена!"}, nil
 }
 
 func (s *server) SpinWheel(ctx context.Context, req *pb.SpinWheelRequest) (*pb.SpinWheelResponse, error) {
-    options := s.wheels[req.GetChatId()]
-    if len(options) == 0 {
-        return &pb.SpinWheelResponse{Result: "No options!"}, nil
+    log.Printf("Spinning wheel for chat_id: %d", req.GetChatId())
+    
+    options, exists := s.wheels[req.GetChatId()]
+    if !exists {
+        return nil, fmt.Errorf("колесо не найдено, сначала создайте его")
     }
-    result := options[rand.Intn(len(options))]
+    
+    if len(options) == 0 {
+        return nil, fmt.Errorf("нет опций для выбора")
+    }
+    
+    result := options[s.rnd.Intn(len(options))]
     return &pb.SpinWheelResponse{Result: result}, nil
 }
 
+func (s *server) ViewOptions(ctx context.Context, req *pb.ViewOptionsRequest) (*pb.ViewOptionsResponse, error) {
+    log.Printf("Viewing options for chat_id: %d", req.GetChatId())
+    
+    options, exists := s.wheels[req.GetChatId()]
+    if !exists {
+        return nil, fmt.Errorf("колесо не найдено, сначала создайте его")
+    }
+    
+    return &pb.ViewOptionsResponse{Options: options}, nil
+}
+
 func main() {
+    r := rand.New(rand.NewSource(time.Now().UnixNano()))
+    
     lis, err := net.Listen("tcp", port)
     if err != nil {
-        log.Fatalf("Failed to listen: %v", err)
+        log.Fatalf("failed to listen: %v", err)
     }
-
-    grpcServer := grpc.NewServer()
-    pb.RegisterFunWheelServiceServer(grpcServer, &server{wheels: make(map[int64][]string)})
-    fmt.Printf("Server is running on port %s\n", port)
-    grpcServer.Serve(lis)
+    
+    s := grpc.NewServer()
+    
+    pb.RegisterFunWheelServiceServer(s, &server{
+        wheels: make(map[int64][]string),
+        rnd:    r,
+    })
+    
+    log.Printf("Server is running on port %s", port)
+    
+    if err := s.Serve(lis); err != nil {
+        log.Fatalf("failed to serve: %v", err)
+    }
 }
