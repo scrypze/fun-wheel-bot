@@ -20,19 +20,24 @@ static_resources:
                     - name: local_service
                       domains: ["*"]
                       routes:
-                        - match: { prefix: "/" }
+                        - match: { prefix: "/v1/" }
                           route:
                             cluster: fun_wheel_service
                             timeout: 30s
                 http_filters:
-                  - name: envoy.filters.http.grpc_http1_bridge
+                  - name: envoy.filters.http.cors
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
+                  - name: envoy.filters.http.grpc_web
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_web.v3.GrpcWeb
                   - name: envoy.filters.http.router
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
   clusters:
     - name: fun_wheel_service
       connect_timeout: 0.25s
-      type: logical_dns
+      type: strict_dns
       lb_policy: round_robin
       http2_protocol_options: {}
       load_assignment:
