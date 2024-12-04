@@ -21,8 +21,13 @@ type server struct {
 }
 
 func (s *server) CreateWheel(ctx context.Context, req *pb.CreateWheelRequest) (*pb.CreateWheelResponse, error) {
-    log.Printf("Creating wheel for chat_id: %d", req.GetChatId())
+    log.Printf("Received CreateWheel request with chat_id: %d", req.GetChatId())
+    if s.wheels == nil {
+        log.Printf("Initializing wheels map")
+        s.wheels = make(map[int64][]string)
+    }
     s.wheels[req.GetChatId()] = make([]string, 0)
+    log.Printf("Wheel created for chat_id: %d", req.GetChatId())
     return &pb.CreateWheelResponse{Message: "Колесо создано!"}, nil
 }
 

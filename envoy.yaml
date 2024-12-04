@@ -10,16 +10,20 @@ static_resources:
                 "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
                 codec_type: AUTO
                 stat_prefix: ingress_http
+                access_log:
+                  - name: envoy.access_loggers.stdout
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
                 route_config:
                   name: local_route
                   virtual_hosts:
                     - name: local_service
                       domains: ["*"]
                       routes:
-                        - match: { prefix: "/v1/" }
+                        - match: { prefix: "/" }
                           route:
                             cluster: fun_wheel_service
-                            prefix_rewrite: "/"
+                            timeout: 30s
                 http_filters:
                   - name: envoy.filters.http.grpc_http1_bridge
                   - name: envoy.filters.http.router
@@ -30,6 +34,7 @@ static_resources:
       connect_timeout: 0.25s
       type: logical_dns
       lb_policy: round_robin
+      http2_protocol_options: {}
       load_assignment:
         cluster_name: fun_wheel_service
         endpoints:

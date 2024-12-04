@@ -79,18 +79,20 @@
 
         function createWheel() {
             console.log('Creating wheel...');
+            const requestData = { chat_id: 123 };
+            console.log('Request data:', requestData);
+            
             fetch('/v1/createwheel', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
-                body: JSON.stringify({ chat_id: 123 })
+                body: JSON.stringify(requestData)
             })
             .then(response => {
-                console.log('Response status:', response.status);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                console.log('Response:', response);
+                console.log('Response headers:', response.headers);
                 return response.json();
             })
             .then(data => {
