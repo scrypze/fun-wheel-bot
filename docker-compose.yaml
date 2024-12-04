@@ -23,11 +23,21 @@ services:
     image: envoyproxy/envoy:v1.28-latest
     volumes:
       - ./envoy.yaml:/etc/envoy/envoy.yaml:ro
-      - ./index.html:/etc/envoy/index.html:ro
     ports:
-      - "80:8080"
+      - "8080:8080"
     depends_on:
       - grpc-server
+    networks:
+      - fun-wheel-network
+
+  web:
+    image: nginx:alpine
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - envoy
     networks:
       - fun-wheel-network
 

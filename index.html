@@ -82,7 +82,7 @@
             const requestData = { chat_id: 123 };
             console.log('Sending request:', requestData);
             
-            fetch('/v1/createwheel', {
+            fetch('http://localhost:8080/v1/createwheel', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

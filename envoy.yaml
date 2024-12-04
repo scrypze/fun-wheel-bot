@@ -10,23 +10,14 @@ static_resources:
                 "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
                 codec_type: AUTO
                 stat_prefix: ingress_http
-                access_log:
-                  - name: envoy.access_loggers.stdout
-                    typed_config:
-                      "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
                 route_config:
                   name: local_route
                   virtual_hosts:
                     - name: local_service
                       domains: ["*"]
                       routes:
-                        - match: { prefix: "/v1/" }
-                          route: { cluster: fun_wheel_service }
                         - match: { prefix: "/" }
-                          direct_response:
-                            status: 200
-                            body: 
-                              filename: "/etc/envoy/index.html"
+                          route: { cluster: fun_wheel_service }
                 http_filters:
                   - name: envoy.filters.http.grpc_http1_bridge
                   - name: envoy.filters.http.router
