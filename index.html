@@ -4,14 +4,79 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fun Wheel</title>
+    <style>
+        .wheel-container {
+            display: none;
+            margin: 20px auto;
+            width: 400px;
+            height: 400px;
+            position: relative;
+        }
+
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid black;
+            position: relative;
+            transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+        }
+
+        .wheel-section {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            transform-origin: 100% 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .input-container {
+            display: none;
+            margin: 20px;
+        }
+
+        .option-input {
+            padding: 10px;
+            margin-right: 10px;
+        }
+
+        .result {
+            margin: 20px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
     <h1>Fun Wheel</h1>
     <button onclick="createWheel()">Create Wheel</button>
-    <button onclick="addOption()">Add Option</button>
+    <div class="input-container" id="inputContainer">
+        <input type="text" class="option-input" id="optionInput" placeholder="Enter option">
+        <button onclick="addOption()">Add Option</button>
+    </div>
+    <div class="wheel-container" id="wheelContainer">
+        <div class="wheel" id="wheel"></div>
+    </div>
     <button onclick="spinWheel()">Spin Wheel</button>
+    <div class="result" id="result"></div>
 
     <script>
+        let options = [];
+        let spinning = false;
+
         function createWheel() {
             fetch('/v1/createwheel', {
                 method: 'POST',
@@ -19,27 +84,72 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ chat_id: 123 })
-            }).then(response => response.json()).then(data => alert(data.message));
+            }).then(response => response.json())
+            .then(data => {
+                document.getElementById('wheelContainer').style.display = 'block';
+                document.getElementById('inputContainer').style.display = 'block';
+                options = [];
+                updateWheel();
+            });
         }
 
         function addOption() {
+            const option = document.getElementById('optionInput').value;
+            if (!option) return;
+
             fetch('/v1/addoption', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ chat_id: 123, option: "Option 1" })
-            }).then(response => response.json()).then(data => alert(data.message));
+                body: JSON.stringify({ chat_id: 123, option: option })
+            }).then(response => response.json())
+            .then(data => {
+                options.push(option);
+                document.getElementById('optionInput').value = '';
+                updateWheel();
+            });
+        }
+
+        function updateWheel() {
+            const wheel = document.getElementById('wheel');
+            wheel.innerHTML = '';
+            
+            const sectionAngle = 360 / options.length;
+            options.forEach((option, index) => {
+                const section = document.createElement('div');
+                section.className = 'wheel-section';
+                section.style.transform = `rotate(${index * sectionAngle}deg)`;
+                section.style.backgroundColor = `hsl(${index * (360 / options.length)}, 70%, 50%)`;
+                section.textContent = option;
+                wheel.appendChild(section);
+            });
         }
 
         function spinWheel() {
+            if (spinning || options.length === 0) return;
+            spinning = true;
+
             fetch('/v1/spinwheel', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ chat_id: 123 })
-            }).then(response => response.json()).then(data => alert(data.result));
+            }).then(response => response.json())
+            .then(data => {
+                const wheel = document.getElementById('wheel');
+                const resultIndex = options.indexOf(data.result);
+                const extraSpins = 5; // Количество дополнительных оборотов
+                const targetAngle = -(360 * extraSpins + (resultIndex * (360 / options.length)));
+                
+                wheel.style.transform = `rotate(${targetAngle}deg)`;
+                
+                setTimeout(() => {
+                    document.getElementById('result').textContent = `Результат: ${data.result}`;
+                    spinning = false;
+                }, 3000);
+            });
         }
     </script>
 </body>
