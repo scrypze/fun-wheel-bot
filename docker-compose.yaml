@@ -4,18 +4,20 @@ services:
   server:
     build:
       context: .
-      dockerfile: server/Dockerfile
+      dockerfile: Dockerfile
+    volumes:
+      - ./static:/app/server/static
     ports:
-      - "50051:50051"
+      - "8080:8080"
     networks:
       - fun-wheel-network
 
-  web:
-    image: nginx:alpine
-    volumes:
-      - ./index.html:/usr/share/nginx/html/index.html:ro
-    ports:
-      - "80:80"
+  telegram-bot:
+    build:
+      context: .
+      dockerfile: bot/Dockerfile
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
     depends_on:
       - server
     networks:

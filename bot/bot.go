@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -27,9 +26,8 @@ func main() {
 		}
 
 		if update.Message.Text == "/start" {
-			wheelURL := fmt.Sprintf("http://scrypze.ru/wheel/%d", update.Message.Chat.ID)
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, 
-				fmt.Sprintf("Создайте своё колесо фортуны: %s", wheelURL))
+				"Создайте своё колесо фортуны: http://scrypze.ru")
 			bot.Send(msg)
 		}
 	}
