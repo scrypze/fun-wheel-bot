@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fun Wheel</title>
+    <script src="https://cdn.jsdelivr.net/npm/google-protobuf@3/google-protobuf.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/grpc-web@1.4.2/dist/grpc-web.js"></script>
+    <script src="/js/funwheel_pb.js"></script>
+    <script src="/js/funwheel_grpc_web_pb.js"></script>
     <style>
         .wheel-container {
             display: none;
@@ -105,34 +109,25 @@
     <div class="result" id="result"></div>
 
     <script>
+        const client = new proto.funwheel.FunWheelServiceClient('http://localhost:8080');
         let options = [];
         let spinning = false;
 
         function createWheel() {
-            console.log('Creating wheel...');
-            fetch('http://localhost:50051/v1/createwheel', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ chat_id: 123 })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+            const request = new proto.funwheel.CreateWheelRequest();
+            request.setChatId(123);
+
+            client.createWheel(request, {}, (err, response) => {
+                if (err) {
+                    console.error('Error:', err);
+                    alert('Ошибка при создании колеса: ' + err.message);
+                    return;
                 }
-                return response.json();
-            })
-            .then(data => {
                 document.getElementById('wheelContainer').style.display = 'block';
                 document.getElementById('inputContainer').style.display = 'block';
                 document.getElementById('spinButton').style.display = 'block';
                 options = [];
                 updateWheel();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Ошибка при создании колеса: ' + error.message);
             });
         }
 
@@ -143,27 +138,19 @@
                 return;
             }
 
-            fetch('http://localhost:50051/v1/addoption', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ chat_id: 123, option: option })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+            const request = new proto.funwheel.AddOptionRequest();
+            request.setChatId(123);
+            request.setOption(option);
+
+            client.addOption(request, {}, (err, response) => {
+                if (err) {
+                    console.error('Error:', err);
+                    alert('Ошибка при добавлении варианта: ' + err.message);
+                    return;
                 }
-                return response.json();
-            })
-            .then(data => {
                 options.push(option);
                 document.getElementById('optionInput').value = '';
                 updateWheel();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Ошибка при добавлении варианта: ' + error.message);
             });
         }
 
@@ -196,36 +183,28 @@
             spinning = true;
             document.getElementById('result').textContent = '';
 
-            fetch('http://localhost:50051/v1/spinwheel', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ chat_id: 123 })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+            const request = new proto.funwheel.SpinWheelRequest();
+            request.setChatId(123);
+
+            client.spinWheel(request, {}, (err, response) => {
+                if (err) {
+                    console.error('Error:', err);
+                    alert('Ошибка при вращении колеса: ' + err.message);
+                    spinning = false;
+                    return;
                 }
-                return response.json();
-            })
-            .then(data => {
+
                 const wheel = document.getElementById('wheel');
-                const resultIndex = options.indexOf(data.result);
+                const resultIndex = options.indexOf(response.getResult());
                 const extraSpins = 5;
                 const targetAngle = -(360 * extraSpins + (resultIndex * (360 / options.length)));
                 
                 wheel.style.transform = `rotate(${targetAngle}deg)`;
                 
                 setTimeout(() => {
-                    document.getElementById('result').textContent = `Результат: ${data.result}`;
+                    document.getElementById('result').textContent = `Результат: ${response.getResult()}`;
                     spinning = false;
                 }, 3000);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Ошибка при вращении колеса: ' + error.message);
-                spinning = false;
             });
         }
 

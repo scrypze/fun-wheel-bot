@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
+	"net"
 	"math/rand"
 	"time"
 
 	"google.golang.org/grpc"
-	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	pb "fun-wheel-bot/grpc"
 )
 
@@ -51,48 +50,21 @@ func (s *server) SpinWheel(ctx context.Context, req *pb.SpinWheelRequest) (*pb.S
 	return &pb.SpinWheelResponse{Result: result}, nil
 }
 
-func (s *server) ViewOptions(ctx context.Context, req *pb.ViewOptionsRequest) (*pb.ViewOptionsResponse, error) {
-	log.Printf("Viewing options for chat_id: %d", req.GetChatId())
-	
-	options, exists := s.wheels[req.GetChatId()]
-	if !exists {
-		return nil, fmt.Errorf("колесо не найдено, сначала создайте его")
-	}
-	
-	return &pb.ViewOptionsResponse{Options: options}, nil
-}
-
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	
-	grpcServer := grpc.NewServer()
+	lis, err := net.Listen("tcp", ":50051")
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
 	
-	pb.RegisterFunWheelServiceServer(grpcServer, &server{
+	s := grpc.NewServer()
+	pb.RegisterFunWheelServiceServer(s, &server{
 		wheels: make(map[int64][]string),
 	})
-
-	wrappedGrpc := grpcweb.WrapServer(grpcServer,
-		grpcweb.WithOriginFunc(func(origin string) bool {
-			return true 
-		}),
-	)
-
-	handler := http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		resp.Header().Set("Access-Control-Allow-Origin", "*")
-		resp.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-		resp.Header().Set("Access-Control-Allow-Headers", "*")
-
-		if wrappedGrpc.IsGrpcWebRequest(req) || wrappedGrpc.IsAcceptableGrpcCorsRequest(req) {
-			wrappedGrpc.ServeHTTP(resp, req)
-			return
-		}
-	})
-
-	httpServer := &http.Server{
-		Addr:    ":50051",
-		Handler: handler,
-	}
-
+	
 	log.Printf("Server is running on port :50051")
-	log.Fatal(httpServer.ListenAndServe())
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
 }

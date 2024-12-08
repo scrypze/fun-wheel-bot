@@ -5,8 +5,17 @@ services:
     build:
       context: .
       dockerfile: server/Dockerfile
+    networks:
+      - fun-wheel-network
+
+  envoy:
+    image: envoyproxy/envoy:v1.28-latest
+    volumes:
+      - ./envoy.yaml:/etc/envoy/envoy.yaml:ro
     ports:
-      - "50051:50051"
+      - "8080:8080"
+    depends_on:
+      - server
     networks:
       - fun-wheel-network
 
@@ -14,10 +23,11 @@ services:
     image: nginx:alpine
     volumes:
       - ./index.html:/usr/share/nginx/html/index.html:ro
+      - ./js:/usr/share/nginx/html/js:ro
     ports:
       - "80:80"
     depends_on:
-      - server
+      - envoy
     networks:
       - fun-wheel-network
 
