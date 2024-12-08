@@ -116,7 +116,8 @@
             fetch('http://scrypze.ru:50051/v1/addoption', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify({ option: option })
             })
@@ -124,9 +125,14 @@
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                options.push(option);
-                input.value = '';
-                updateWheel();
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'ok') {
+                    options.push(option);
+                    input.value = '';
+                    updateWheel();
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -166,25 +172,26 @@
             fetch('http://scrypze.ru:50051/v1/spinwheel', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             })
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                return response.text();
+                return response.json();
             })
-            .then(result => {
+            .then(data => {
                 const wheel = document.getElementById('wheel');
-                const resultIndex = options.indexOf(result);
+                const resultIndex = options.indexOf(data.result);
                 const extraSpins = 5;
                 const targetAngle = -(360 * extraSpins + (resultIndex * (360 / options.length)));
                 
                 wheel.style.transform = `rotate(${targetAngle}deg)`;
                 
                 setTimeout(() => {
-                    document.getElementById('result').textContent = `Результат: ${result}`;
+                    document.getElementById('result').textContent = `Результат: ${data.result}`;
                     spinning = false;
                 }, 3000);
             })
