@@ -109,18 +109,28 @@
     <div class="result" id="result"></div>
 
     <script>
-        console.log('Loading gRPC client...');
-        try {
-            const client = new proto.funwheel.FunWheelServiceClient('http://localhost:8080');
-            console.log('gRPC client loaded successfully');
-        } catch (e) {
-            console.error('Failed to create gRPC client:', e);
-        }
-
+        let client;
         let options = [];
         let spinning = false;
 
+        // Ждем загрузки всех скриптов
+        window.addEventListener('load', function() {
+            console.log('Loading gRPC client...');
+            try {
+                client = new proto.funwheel.FunWheelServiceClient('http://localhost:8080');
+                console.log('gRPC client loaded successfully');
+            } catch (e) {
+                console.error('Failed to create gRPC client:', e);
+            }
+        });
+
         function createWheel() {
+            if (!client) {
+                console.error('gRPC client not initialized');
+                alert('Ошибка: клиент не инициализирован');
+                return;
+            }
+
             console.log('Creating wheel...');
             try {
                 const request = new proto.funwheel.CreateWheelRequest();
