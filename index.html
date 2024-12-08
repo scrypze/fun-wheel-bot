@@ -70,15 +70,8 @@
 </head>
 <body>
     <h1>Колесо Фортуны</h1>
-    <div class="controls">
-        <form action="http://scrypze.ru:50051/v1/createwheel" method="POST">
-            <input type="hidden" name="chat_id" value="123">
-            <button type="submit">Создать колесо</button>
-        </form>
-    </div>
     <div class="input-container">
         <form action="http://scrypze.ru:50051/v1/addoption" method="POST">
-            <input type="hidden" name="chat_id" value="123">
             <input type="text" class="option-input" name="option" placeholder="Введите вариант" required>
             <button type="submit">Добавить вариант</button>
         </form>
@@ -88,7 +81,6 @@
     </div>
     <div class="controls">
         <form action="http://scrypze.ru:50051/v1/spinwheel" method="POST">
-            <input type="hidden" name="chat_id" value="123">
             <button type="submit">Крутить!</button>
         </form>
     </div>
