@@ -99,8 +99,8 @@ func main() {
 	staticDir := http.Dir("static")
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(staticDir)))
 
-	log.Println("Server started at http://localhost:8080")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	log.Println("Server started at http://localhost:50051")
+	if err := http.ListenAndServe(":50051", nil); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
 }
