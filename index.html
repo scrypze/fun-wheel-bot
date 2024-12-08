@@ -6,8 +6,19 @@
     <title>Fun Wheel</title>
     <script src="https://cdn.jsdelivr.net/npm/google-protobuf@3/google-protobuf.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/grpc-web@1.4.2/dist/grpc-web.js"></script>
-    <script defer src="/js/funwheel_pb.js"></script>
-    <script defer src="/js/funwheel_grpc_web_pb.js"></script>
+    <script>
+        function checkScriptsLoaded() {
+            console.log('Checking if proto is loaded:', typeof proto !== 'undefined');
+            if (typeof proto === 'undefined') {
+                console.error('Proto namespace not loaded');
+                return false;
+            }
+            console.log('Proto namespace available:', proto);
+            return true;
+        }
+    </script>
+    <script src="/js/funwheel_pb.js" onload="console.log('funwheel_pb.js loaded')" onerror="console.error('Failed to load funwheel_pb.js')"></script>
+    <script src="/js/funwheel_grpc_web_pb.js" onload="console.log('funwheel_grpc_web_pb.js loaded')" onerror="console.error('Failed to load funwheel_grpc_web_pb.js')"></script>
     <style>
         .wheel-container {
             display: none;
@@ -170,7 +181,7 @@
             client.addOption(request, {}, (err, response) => {
                 if (err) {
                     console.error('Error:', err);
-                    alert('Ошибка при добавлении варианта: ' + err.message);
+                    alert('Ошибка при добавл��нии варианта: ' + err.message);
                     return;
                 }
                 options.push(option);
