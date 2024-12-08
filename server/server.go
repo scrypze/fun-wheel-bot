@@ -5,79 +5,102 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
+	"path/filepath"
+	"sync"
 	"time"
-	"github.com/gorilla/mux"
 )
 
-type Wheel struct {
-	Options []string `json:"options"`
+type WheelService struct {
+	items []string
+	mux   sync.Mutex
 }
 
-var wheels = make(map[string]*Wheel)
-
-func handleAddOption(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	wheelID := vars["id"]
-
-	var req struct {
-		Option string `json:"option"`
+func NewWheelService() *WheelService {
+	return &WheelService{
+		items: []string{},
 	}
+}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+func (ws *WheelService) AddItem(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
 
-	wheel, ok := wheels[wheelID]
-	if !ok {
-		wheel = &Wheel{Options: make([]string, 0)}
-		wheels[wheelID] = wheel
+	var item struct {
+		Text string `json:"text"`
 	}
-
-	wheel.Options = append(wheel.Options, req.Option)
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
-}
-
-func handleSpinWheel(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	wheelID := vars["id"]
-
-	wheel, ok := wheels[wheelID]
-	if !ok || len(wheel.Options) == 0 {
-		http.Error(w, "no options available", http.StatusBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
 
-	result := wheel.Options[rand.Intn(len(wheel.Options))]
-	json.NewEncoder(w).Encode(map[string]string{"result": result})
+	ws.mux.Lock()
+	defer ws.mux.Unlock()
+	ws.items = append(ws.items, item.Text)
+	log.Printf("Added item: %s", item.Text)
+	w.WriteHeader(http.StatusOK)
 }
 
-func handleGetWheel(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	wheelID := vars["id"]
-
-	wheel, ok := wheels[wheelID]
-	if !ok {
-		wheel = &Wheel{Options: make([]string, 0)}
-		wheels[wheelID] = wheel
+func (ws *WheelService) ResetItems(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
 	}
 
-	json.NewEncoder(w).Encode(wheel)
+	ws.mux.Lock()
+	defer ws.mux.Unlock()
+	ws.items = []string{}
+	log.Println("Reset all items")
+	w.WriteHeader(http.StatusOK)
 }
 
-func serveIndex(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "index.html")
+func (ws *WheelService) SpinWheel(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ws.mux.Lock()
+	defer ws.mux.Unlock()
+
+	if len(ws.items) == 0 {
+		http.Error(w, "No items in the wheel", http.StatusBadRequest)
+		return
+	}
+
+	rand.Seed(time.Now().UnixNano())
+	winner := ws.items[rand.Intn(len(ws.items))]
+	log.Printf("Wheel spun. Winner: %s", winner)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"winner": winner})
+}
+
+func (ws *WheelService) ServeHTML(w http.ResponseWriter, r *http.Request) {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	htmlPath := filepath.Join(currentDir, "static", "index.html")
+	http.ServeFile(w, r, htmlPath)
 }
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
+	service := NewWheelService()
 
-	r := mux.NewRouter()
-	r.HandleFunc("/wheel/{id:[0-9]+}", serveIndex)
-	r.HandleFunc("/api/wheel/{id}", handleGetWheel).Methods("GET")
-	r.HandleFunc("/api/wheel/{id}/option", handleAddOption).Methods("POST")
-	r.HandleFunc("/api/wheel/{id}/spin", handleSpinWheel).Methods("POST")
+	http.HandleFunc("/", service.ServeHTML)
+	http.HandleFunc("/add", service.AddItem)
+	http.HandleFunc("/reset", service.ResetItems)
+	http.HandleFunc("/spin", service.SpinWheel)
 
-	log.Printf("Server is running on port :50051")
-	log.Fatal(http.ListenAndServe(":50051", r))
+	staticDir := http.Dir("static")
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(staticDir)))
+
+	log.Println("Server started at http://localhost:8080")
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatalf("Server failed: %v", err)
+	}
 }
