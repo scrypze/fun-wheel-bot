@@ -10,17 +10,6 @@ services:
     networks:
       - fun-wheel-network
 
-  telegram-bot:
-    build:
-      context: .
-      dockerfile: bot/Dockerfile
-    environment:
-      - BOT_TOKEN=${BOT_TOKEN}
-    depends_on:
-      - server
-    networks:
-      - fun-wheel-network
-
   web:
     image: nginx:alpine
     volumes:

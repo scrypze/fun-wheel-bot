@@ -20,6 +20,8 @@
             border: 2px solid black;
             position: relative;
             transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+            background-color: #f0f0f0;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
         }
 
         .wheel-section {
@@ -35,98 +37,133 @@
             text-align: center;
             padding: 10px;
             box-sizing: border-box;
+            clip-path: polygon(100% 50%, 0 0, 0 100%);
         }
 
         .input-container {
             display: none;
             margin: 20px;
+            text-align: center;
         }
 
         .option-input {
             padding: 10px;
             margin-right: 10px;
+            width: 200px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
         }
 
         .result {
             margin: 20px;
             font-size: 24px;
             font-weight: bold;
+            text-align: center;
         }
 
         button {
             padding: 10px 20px;
             margin: 5px;
             cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .controls {
+            text-align: center;
+            margin: 20px;
         }
     </style>
 </head>
 <body>
-    <h1>Fun Wheel</h1>
-    <button onclick="createWheel()">Создать колесо</button>
+    <h1>Колесо Фортуны</h1>
+    <div class="controls">
+        <button onclick="createWheel()">Создать колесо</button>
+    </div>
     <div class="input-container" id="inputContainer">
-        <input type="text" class="option-input" id="optionInput" placeholder="Enter option">
+        <input type="text" class="option-input" id="optionInput" placeholder="Введите вариант">
         <button onclick="addOption()">Добавить вариант</button>
     </div>
     <div class="wheel-container" id="wheelContainer">
         <div class="wheel" id="wheel"></div>
     </div>
-    <button onclick="spinWheel()">Пуск</button>
+    <div class="controls">
+        <button onclick="spinWheel()" id="spinButton" style="display: none;">Крутить!</button>
+    </div>
     <div class="result" id="result"></div>
 
-    <script src="https://github.com/improbable-eng/grpc-web/releases/download/v0.15.0/grpc-web-client.js"></script>
     <script>
         let options = [];
         let spinning = false;
 
         function createWheel() {
-            const client = new grpc.web.GrpcWebClientBase();
-            const service = new proto.funwheel.FunWheelService(client);
-            
-            const request = new proto.funwheel.CreateWheelRequest();
-            request.setChatId(123);
-
-            service.createWheel(request, {}, (err, response) => {
-                if (err) {
-                    console.error('Error:', err);
-                    return;
-                }
-                console.log('Success:', response.getMessage());
-                document.getElementById('wheelContainer').style.display = 'block';
-                document.getElementById('inputContainer').style.display = 'block';
-                options = [];
-                updateWheel();
-            });
-        }
-
-        function addOption() {
-            const option = document.getElementById('optionInput').value;
-            if (!option) return;
-
-            console.log('Adding option:', option);
-            fetch('http://localhost:50051/v1/addoption', {
+            console.log('Creating wheel...');
+            fetch('http://localhost:50051/v1/createwheel', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ chat_id: 123, option: option })
+                body: JSON.stringify({ chat_id: 123 })
             })
             .then(response => {
-                console.log('Response status:', response.status);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 return response.json();
             })
             .then(data => {
-                console.log('Success:', data);
+                document.getElementById('wheelContainer').style.display = 'block';
+                document.getElementById('inputContainer').style.display = 'block';
+                document.getElementById('spinButton').style.display = 'block';
+                options = [];
+                updateWheel();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ошибка при создании колеса: ' + error.message);
+            });
+        }
+
+        function addOption() {
+            const option = document.getElementById('optionInput').value.trim();
+            if (!option) {
+                alert('Пожалуйста, введите вариант');
+                return;
+            }
+
+            fetch('http://localhost:50051/v1/addoption', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ chat_id: 123, option: option })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
                 options.push(option);
                 document.getElementById('optionInput').value = '';
                 updateWheel();
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Ошибка при добавлении опции: ' + error.message);
+                alert('Ошибка при добавлении варианта: ' + error.message);
             });
         }
 
@@ -134,6 +171,11 @@
             const wheel = document.getElementById('wheel');
             wheel.innerHTML = '';
             
+            if (options.length === 0) {
+                wheel.style.backgroundColor = '#f0f0f0';
+                return;
+            }
+
             const sectionAngle = 360 / options.length;
             options.forEach((option, index) => {
                 const section = document.createElement('div');
@@ -147,30 +189,27 @@
 
         function spinWheel() {
             if (spinning || options.length === 0) {
-                alert('Нельзя крутить: ' + (spinning ? 'колесо уже крутится' : 'нет опций'));
+                alert(options.length === 0 ? 'Добавьте варианты перед вращением!' : 'Колесо уже крутится!');
                 return;
             }
             
             spinning = true;
-            console.log('Spinning wheel...');
+            document.getElementById('result').textContent = '';
 
             fetch('http://localhost:50051/v1/spinwheel', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ chat_id: 123 })
             })
             .then(response => {
-                console.log('Response status:', response.status);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 return response.json();
             })
             .then(data => {
-                console.log('Success:', data);
                 const wheel = document.getElementById('wheel');
                 const resultIndex = options.indexOf(data.result);
                 const extraSpins = 5;

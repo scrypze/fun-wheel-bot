@@ -40,7 +40,7 @@ func (s *server) SpinWheel(ctx context.Context, req *pb.SpinWheelRequest) (*pb.S
 	
 	options, exists := s.wheels[req.GetChatId()]
 	if !exists {
-		return nil, fmt.Errorf("колесо не найдено, снач��ла создайте его")
+		return nil, fmt.Errorf("колесо не найдено, сначала создайте его")
 	}
 	
 	if len(options) == 0 {
