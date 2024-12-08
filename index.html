@@ -6,8 +6,8 @@
     <title>Fun Wheel</title>
     <script src="https://cdn.jsdelivr.net/npm/google-protobuf@3/google-protobuf.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/grpc-web@1.4.2/dist/grpc-web.js"></script>
-    <script src="/js/funwheel_pb.js"></script>
-    <script src="/js/funwheel_grpc_web_pb.js"></script>
+    <script defer src="/js/funwheel_pb.js"></script>
+    <script defer src="/js/funwheel_grpc_web_pb.js"></script>
     <style>
         .wheel-container {
             display: none;
@@ -109,26 +109,41 @@
     <div class="result" id="result"></div>
 
     <script>
-        const client = new proto.funwheel.FunWheelServiceClient('http://localhost:8080');
+        console.log('Loading gRPC client...');
+        try {
+            const client = new proto.funwheel.FunWheelServiceClient('http://localhost:8080');
+            console.log('gRPC client loaded successfully');
+        } catch (e) {
+            console.error('Failed to create gRPC client:', e);
+        }
+
         let options = [];
         let spinning = false;
 
         function createWheel() {
-            const request = new proto.funwheel.CreateWheelRequest();
-            request.setChatId(123);
+            console.log('Creating wheel...');
+            try {
+                const request = new proto.funwheel.CreateWheelRequest();
+                request.setChatId(123);
+                console.log('Request created:', request);
 
-            client.createWheel(request, {}, (err, response) => {
-                if (err) {
-                    console.error('Error:', err);
-                    alert('Ошибка при создании колеса: ' + err.message);
-                    return;
-                }
-                document.getElementById('wheelContainer').style.display = 'block';
-                document.getElementById('inputContainer').style.display = 'block';
-                document.getElementById('spinButton').style.display = 'block';
-                options = [];
-                updateWheel();
-            });
+                client.createWheel(request, {}, (err, response) => {
+                    console.log('Got response:', err, response);
+                    if (err) {
+                        console.error('Error:', err);
+                        alert('Ошибка при создании колеса: ' + err.message);
+                        return;
+                    }
+                    document.getElementById('wheelContainer').style.display = 'block';
+                    document.getElementById('inputContainer').style.display = 'block';
+                    document.getElementById('spinButton').style.display = 'block';
+                    options = [];
+                    updateWheel();
+                });
+            } catch (e) {
+                console.error('Error in createWheel:', e);
+                alert('Ошибка при создании колеса: ' + e.message);
+            }
         }
 
         function addOption() {
