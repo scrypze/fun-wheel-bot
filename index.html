@@ -101,6 +101,7 @@
     <div class="result" id="result"></div>
 
     <script>
+        const wheelId = window.location.pathname.split('/').pop();
         let options = [];
         let spinning = false;
 
@@ -113,30 +114,22 @@
                 return;
             }
 
-            fetch('http://scrypze.ru:50051/v1/addoption', {
+            fetch(`/api/wheel/${wheelId}/option`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ option: option })
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
-                if (data.status === 'ok') {
-                    options.push(option);
-                    input.value = '';
-                    updateWheel();
-                }
+                options.push(option);
+                input.value = '';
+                updateWheel();
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Ошибка при добавлении варианта: ' + error.message);
+                alert('Ошибка при добавлении варианта');
             });
         }
 
@@ -169,19 +162,10 @@
             spinning = true;
             document.getElementById('result').textContent = '';
 
-            fetch('http://scrypze.ru:50051/v1/spinwheel', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                }
+            fetch(`/api/wheel/${wheelId}/spin`, {
+                method: 'POST'
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
                 const wheel = document.getElementById('wheel');
                 const resultIndex = options.indexOf(data.result);
@@ -197,7 +181,7 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Ошибка при вращении колеса: ' + error.message);
+                alert('Ошибка при вращении колеса');
                 spinning = false;
             });
         }
@@ -207,6 +191,14 @@
                 addOption();
             }
         });
+
+        // Загружаем существующие опции при открытии страницы
+        fetch(`/api/wheel/${wheelId}`)
+            .then(response => response.json())
+            .then(data => {
+                options = data.options;
+                updateWheel();
+            });
     </script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -8,14 +9,9 @@ import (
 )
 
 func main() {
-	token := os.Getenv("BOT_TOKEN")
-	if token == "" {
-		log.Fatal("BOT_TOKEN environment variable is not set")
-	}
-
-	bot, err := tgbotapi.NewBotAPI(token)
+	bot, err := tgbotapi.NewBotAPI(os.Getenv("BOT_TOKEN"))
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
@@ -24,32 +20,17 @@ func main() {
 	u.Timeout = 60
 
 	updates, err := bot.GetUpdatesChan(u)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	for update := range updates {
 		if update.Message == nil {
 			continue
 		}
 
-		log.Printf("Received message from %s: %s", update.Message.From.UserName, update.Message.Text)
-
 		if update.Message.Text == "/start" {
-			log.Println("Received /start command")
-
-			inlineKeyboard := tgbotapi.NewInlineKeyboardMarkup(
-				[]tgbotapi.InlineKeyboardButton{
-					tgbotapi.NewInlineKeyboardButtonURL("Перейти на веб-страницу с колесом фортуны", "http://scrypze.ru"),
-				},
-			)
-
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Нажмите на кнопку ниже, чтобы перейти к колесу фортуны!")
-			msg.ReplyMarkup = inlineKeyboard
-
-			if _, err := bot.Send(msg); err != nil {
-				log.Printf("Failed to send message: %v", err)
-			}
+			wheelURL := fmt.Sprintf("http://scrypze.ru/wheel/%d", update.Message.Chat.ID)
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, 
+				fmt.Sprintf("Создайте своё колесо фортуны: %s", wheelURL))
+			bot.Send(msg)
 		}
 	}
 }
