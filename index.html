@@ -6,19 +6,6 @@
     <title>Fun Wheel</title>
     <script src="https://cdn.jsdelivr.net/npm/google-protobuf@3/google-protobuf.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/grpc-web@1.4.2/dist/grpc-web.js"></script>
-    <script>
-        function checkScriptsLoaded() {
-            console.log('Checking if proto is loaded:', typeof proto !== 'undefined');
-            if (typeof proto === 'undefined') {
-                console.error('Proto namespace not loaded');
-                return false;
-            }
-            console.log('Proto namespace available:', proto);
-            return true;
-        }
-    </script>
-    <script src="/js/funwheel_pb.js" onload="console.log('funwheel_pb.js loaded')" onerror="console.error('Failed to load funwheel_pb.js')"></script>
-    <script src="/js/funwheel_grpc_web_pb.js" onload="console.log('funwheel_grpc_web_pb.js loaded')" onerror="console.error('Failed to load funwheel_grpc_web_pb.js')"></script>
     <style>
         .wheel-container {
             display: none;
@@ -120,6 +107,109 @@
     <div class="result" id="result"></div>
 
     <script>
+        const proto = {};
+        proto.funwheel = {};
+
+        proto.funwheel.CreateWheelRequest = function() {
+            this.chatId = 0;
+        };
+
+        proto.funwheel.CreateWheelRequest.prototype.setChatId = function(value) {
+            this.chatId = value;
+        };
+
+        proto.funwheel.CreateWheelResponse = function() {
+            this.message = "";
+        };
+
+        proto.funwheel.AddOptionRequest = function() {
+            this.chatId = 0;
+            this.option = "";
+        };
+
+        proto.funwheel.AddOptionRequest.prototype.setChatId = function(value) {
+            this.chatId = value;
+        };
+
+        proto.funwheel.AddOptionRequest.prototype.setOption = function(value) {
+            this.option = value;
+        };
+
+        proto.funwheel.AddOptionsResponse = function() {
+            this.message = "";
+        };
+
+        proto.funwheel.SpinWheelRequest = function() {
+            this.chatId = 0;
+        };
+
+        proto.funwheel.SpinWheelRequest.prototype.setChatId = function(value) {
+            this.chatId = value;
+        };
+
+        proto.funwheel.SpinWheelResponse = function() {
+            this.result = "";
+        };
+
+        proto.funwheel.SpinWheelResponse.prototype.getResult = function() {
+            return this.result;
+        };
+
+        proto.funwheel.FunWheelServiceClient = function(hostname) {
+            this.hostname = hostname;
+        };
+
+        proto.funwheel.FunWheelServiceClient.prototype.createWheel = function(request, metadata, callback) {
+            fetch(this.hostname + '/v1/createwheel', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ chat_id: request.chatId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resp = new proto.funwheel.CreateWheelResponse();
+                resp.message = data.message;
+                callback(null, resp);
+            })
+            .catch(err => callback(err, null));
+        };
+
+        proto.funwheel.FunWheelServiceClient.prototype.addOption = function(request, metadata, callback) {
+            fetch(this.hostname + '/v1/addoption', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ chat_id: request.chatId, option: request.option })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resp = new proto.funwheel.AddOptionsResponse();
+                resp.message = data.message;
+                callback(null, resp);
+            })
+            .catch(err => callback(err, null));
+        };
+
+        proto.funwheel.FunWheelServiceClient.prototype.spinWheel = function(request, metadata, callback) {
+            fetch(this.hostname + '/v1/spinwheel', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ chat_id: request.chatId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resp = new proto.funwheel.SpinWheelResponse();
+                resp.result = data.result;
+                callback(null, resp);
+            })
+            .catch(err => callback(err, null));
+        };
+
         let client;
         let options = [];
         let spinning = false;
