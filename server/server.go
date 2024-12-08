@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -13,28 +14,48 @@ type server struct {
 }
 
 func (s *server) handleAddOption(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	err := r.ParseForm()
-	if err != nil {
+	var req struct {
+		Option string `json:"option"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	option := r.FormValue("option")
-	if option == "" {
+	if req.Option == "" {
 		http.Error(w, "option is required", http.StatusBadRequest)
 		return
 	}
 
-	s.options = append(s.options, option)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	s.options = append(s.options, req.Option)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (s *server) handleSpinWheel(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -46,8 +67,7 @@ func (s *server) handleSpinWheel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result := s.options[rand.Intn(len(s.options))]
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, "<h2>Результат: %s</h2><p><a href='/'>Назад</a></p>", result)
+	fmt.Fprint(w, result)
 }
 
 func main() {

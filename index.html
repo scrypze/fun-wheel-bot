@@ -18,8 +18,26 @@
             border-radius: 50%;
             border: 2px solid black;
             position: relative;
+            transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99);
             background-color: #f0f0f0;
             box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .wheel-section {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            transform-origin: 100% 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            box-sizing: border-box;
+            clip-path: polygon(100% 50%, 0 0, 0 100%);
         }
 
         .input-container {
@@ -71,19 +89,117 @@
 <body>
     <h1>Колесо Фортуны</h1>
     <div class="input-container">
-        <form action="http://scrypze.ru:50051/v1/addoption" method="POST">
-            <input type="text" class="option-input" name="option" placeholder="Введите вариант" required>
-            <button type="submit">Добавить вариант</button>
-        </form>
+        <input type="text" class="option-input" id="optionInput" placeholder="Введите вариант" required>
+        <button onclick="addOption()">Добавить вариант</button>
     </div>
     <div class="wheel-container">
-        <div class="wheel"></div>
+        <div class="wheel" id="wheel"></div>
     </div>
     <div class="controls">
-        <form action="http://scrypze.ru:50051/v1/spinwheel" method="POST">
-            <button type="submit">Крутить!</button>
-        </form>
+        <button onclick="spinWheel()">Крутить!</button>
     </div>
-    <div class="result"></div>
+    <div class="result" id="result"></div>
+
+    <script>
+        let options = [];
+        let spinning = false;
+
+        function addOption() {
+            const input = document.getElementById('optionInput');
+            const option = input.value.trim();
+            
+            if (!option) {
+                alert('Пожалуйста, введите вариант');
+                return;
+            }
+
+            fetch('http://scrypze.ru:50051/v1/addoption', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ option: option })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                options.push(option);
+                input.value = '';
+                updateWheel();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ошибка при добавлении варианта: ' + error.message);
+            });
+        }
+
+        function updateWheel() {
+            const wheel = document.getElementById('wheel');
+            wheel.innerHTML = '';
+            
+            if (options.length === 0) {
+                wheel.style.backgroundColor = '#f0f0f0';
+                return;
+            }
+
+            const sectionAngle = 360 / options.length;
+            options.forEach((option, index) => {
+                const section = document.createElement('div');
+                section.className = 'wheel-section';
+                section.style.transform = `rotate(${index * sectionAngle}deg)`;
+                section.style.backgroundColor = `hsl(${index * (360 / options.length)}, 70%, 50%)`;
+                section.textContent = option;
+                wheel.appendChild(section);
+            });
+        }
+
+        function spinWheel() {
+            if (spinning || options.length === 0) {
+                alert(options.length === 0 ? 'Добавьте варианты перед вращением!' : 'Колесо уже крутится!');
+                return;
+            }
+            
+            spinning = true;
+            document.getElementById('result').textContent = '';
+
+            fetch('http://scrypze.ru:50051/v1/spinwheel', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(result => {
+                const wheel = document.getElementById('wheel');
+                const resultIndex = options.indexOf(result);
+                const extraSpins = 5;
+                const targetAngle = -(360 * extraSpins + (resultIndex * (360 / options.length)));
+                
+                wheel.style.transform = `rotate(${targetAngle}deg)`;
+                
+                setTimeout(() => {
+                    document.getElementById('result').textContent = `Результат: ${result}`;
+                    spinning = false;
+                }, 3000);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ошибка при вращении колеса: ' + error.message);
+                spinning = false;
+            });
+        }
+
+        document.getElementById('optionInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addOption();
+            }
+        });
+    </script>
 </body>
 </html>
