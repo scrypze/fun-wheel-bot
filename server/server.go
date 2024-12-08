@@ -5,8 +5,6 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"os"
-	"path/filepath"
 	"sync"
 	"time"
 )
@@ -79,13 +77,7 @@ func (ws *WheelService) SpinWheel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ws *WheelService) ServeHTML(w http.ResponseWriter, r *http.Request) {
-	currentDir, err := os.Getwd()
-	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	htmlPath := filepath.Join(currentDir, "static", "index.html")
-	http.ServeFile(w, r, htmlPath)
+	http.ServeFile(w, r, "static/index.html")
 }
 
 func main() {
