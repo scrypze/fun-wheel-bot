@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fun Wheel</title>
-    <script src="https://cdn.jsdelivr.net/npm/google-protobuf@3/google-protobuf.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/grpc-web@1.4.2/dist/grpc-web.js"></script>
     <style>
         .wheel-container {
-            display: none;
             margin: 20px auto;
             width: 400px;
             height: 400px;
@@ -21,29 +18,11 @@
             border-radius: 50%;
             border: 2px solid black;
             position: relative;
-            transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99);
             background-color: #f0f0f0;
             box-shadow: 0 0 10px rgba(0,0,0,0.3);
         }
 
-        .wheel-section {
-            position: absolute;
-            width: 50%;
-            height: 50%;
-            transform-origin: 100% 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            color: white;
-            text-align: center;
-            padding: 10px;
-            box-sizing: border-box;
-            clip-path: polygon(100% 50%, 0 0, 0 100%);
-        }
-
         .input-container {
-            display: none;
             margin: 20px;
             text-align: center;
         }
@@ -92,252 +71,27 @@
 <body>
     <h1>Колесо Фортуны</h1>
     <div class="controls">
-        <button onclick="createWheel()">Создать колесо</button>
+        <form action="http://scrypze.ru:50051/v1/createwheel" method="POST">
+            <input type="hidden" name="chat_id" value="123">
+            <button type="submit">Создать колесо</button>
+        </form>
     </div>
-    <div class="input-container" id="inputContainer">
-        <input type="text" class="option-input" id="optionInput" placeholder="Введите вариант">
-        <button onclick="addOption()">Добавить вариант</button>
+    <div class="input-container">
+        <form action="http://scrypze.ru:50051/v1/addoption" method="POST">
+            <input type="hidden" name="chat_id" value="123">
+            <input type="text" class="option-input" name="option" placeholder="Введите вариант" required>
+            <button type="submit">Добавить вариант</button>
+        </form>
     </div>
-    <div class="wheel-container" id="wheelContainer">
-        <div class="wheel" id="wheel"></div>
+    <div class="wheel-container">
+        <div class="wheel"></div>
     </div>
     <div class="controls">
-        <button onclick="spinWheel()" id="spinButton" style="display: none;">Крутить!</button>
+        <form action="http://scrypze.ru:50051/v1/spinwheel" method="POST">
+            <input type="hidden" name="chat_id" value="123">
+            <button type="submit">Крутить!</button>
+        </form>
     </div>
-    <div class="result" id="result"></div>
-
-    <script>
-        const proto = {};
-        proto.funwheel = {};
-
-        proto.funwheel.CreateWheelRequest = function() {
-            this.chatId = 0;
-        };
-
-        proto.funwheel.CreateWheelRequest.prototype.setChatId = function(value) {
-            this.chatId = value;
-        };
-
-        proto.funwheel.CreateWheelResponse = function() {
-            this.message = "";
-        };
-
-        proto.funwheel.AddOptionRequest = function() {
-            this.chatId = 0;
-            this.option = "";
-        };
-
-        proto.funwheel.AddOptionRequest.prototype.setChatId = function(value) {
-            this.chatId = value;
-        };
-
-        proto.funwheel.AddOptionRequest.prototype.setOption = function(value) {
-            this.option = value;
-        };
-
-        proto.funwheel.AddOptionsResponse = function() {
-            this.message = "";
-        };
-
-        proto.funwheel.SpinWheelRequest = function() {
-            this.chatId = 0;
-        };
-
-        proto.funwheel.SpinWheelRequest.prototype.setChatId = function(value) {
-            this.chatId = value;
-        };
-
-        proto.funwheel.SpinWheelResponse = function() {
-            this.result = "";
-        };
-
-        proto.funwheel.SpinWheelResponse.prototype.getResult = function() {
-            return this.result;
-        };
-
-        proto.funwheel.FunWheelServiceClient = function(hostname) {
-            this.hostname = hostname;
-        };
-
-        proto.funwheel.FunWheelServiceClient.prototype.createWheel = function(request, metadata, callback) {
-            fetch(this.hostname + '/v1/createwheel', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ chat_id: request.chatId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                const resp = new proto.funwheel.CreateWheelResponse();
-                resp.message = data.message;
-                callback(null, resp);
-            })
-            .catch(err => callback(err, null));
-        };
-
-        proto.funwheel.FunWheelServiceClient.prototype.addOption = function(request, metadata, callback) {
-            fetch(this.hostname + '/v1/addoption', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ chat_id: request.chatId, option: request.option })
-            })
-            .then(response => response.json())
-            .then(data => {
-                const resp = new proto.funwheel.AddOptionsResponse();
-                resp.message = data.message;
-                callback(null, resp);
-            })
-            .catch(err => callback(err, null));
-        };
-
-        proto.funwheel.FunWheelServiceClient.prototype.spinWheel = function(request, metadata, callback) {
-            fetch(this.hostname + '/v1/spinwheel', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ chat_id: request.chatId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                const resp = new proto.funwheel.SpinWheelResponse();
-                resp.result = data.result;
-                callback(null, resp);
-            })
-            .catch(err => callback(err, null));
-        };
-
-        let client;
-        let options = [];
-        let spinning = false;
-
-        window.addEventListener('load', function() {
-            console.log('Loading gRPC client...');
-            try {
-                client = new proto.funwheel.FunWheelServiceClient('http://scrypze.ru:50051');
-                console.log('gRPC client loaded successfully');
-            } catch (e) {
-                console.error('Failed to create gRPC client:', e);
-            }
-        });
-
-        function createWheel() {
-            if (!client) {
-                console.error('gRPC client not initialized');
-                alert('Ошибка: клиент не инициализирован');
-                return;
-            }
-
-            console.log('Creating wheel...');
-            try {
-                const request = new proto.funwheel.CreateWheelRequest();
-                request.setChatId(123);
-                console.log('Request created:', request);
-
-                client.createWheel(request, {}, (err, response) => {
-                    console.log('Got response:', err, response);
-                    if (err) {
-                        console.error('Error:', err);
-                        alert('Ошибка при создании колеса: ' + err.message);
-                        return;
-                    }
-                    document.getElementById('wheelContainer').style.display = 'block';
-                    document.getElementById('inputContainer').style.display = 'block';
-                    document.getElementById('spinButton').style.display = 'block';
-                    options = [];
-                    updateWheel();
-                });
-            } catch (e) {
-                console.error('Error in createWheel:', e);
-                alert('Ошибка при создании колеса: ' + e.message);
-            }
-        }
-
-        function addOption() {
-            const option = document.getElementById('optionInput').value.trim();
-            if (!option) {
-                alert('Пожалуйста, введите вариант');
-                return;
-            }
-
-            const request = new proto.funwheel.AddOptionRequest();
-            request.setChatId(123);
-            request.setOption(option);
-
-            client.addOption(request, {}, (err, response) => {
-                if (err) {
-                    console.error('Error:', err);
-                    alert('Ошибка при добавл��нии варианта: ' + err.message);
-                    return;
-                }
-                options.push(option);
-                document.getElementById('optionInput').value = '';
-                updateWheel();
-            });
-        }
-
-        function updateWheel() {
-            const wheel = document.getElementById('wheel');
-            wheel.innerHTML = '';
-            
-            if (options.length === 0) {
-                wheel.style.backgroundColor = '#f0f0f0';
-                return;
-            }
-
-            const sectionAngle = 360 / options.length;
-            options.forEach((option, index) => {
-                const section = document.createElement('div');
-                section.className = 'wheel-section';
-                section.style.transform = `rotate(${index * sectionAngle}deg)`;
-                section.style.backgroundColor = `hsl(${index * (360 / options.length)}, 70%, 50%)`;
-                section.textContent = option;
-                wheel.appendChild(section);
-            });
-        }
-
-        function spinWheel() {
-            if (spinning || options.length === 0) {
-                alert(options.length === 0 ? 'Добавьте варианты перед вращением!' : 'Колесо уже крутится!');
-                return;
-            }
-            
-            spinning = true;
-            document.getElementById('result').textContent = '';
-
-            const request = new proto.funwheel.SpinWheelRequest();
-            request.setChatId(123);
-
-            client.spinWheel(request, {}, (err, response) => {
-                if (err) {
-                    console.error('Error:', err);
-                    alert('Ошибка при вращении колеса: ' + err.message);
-                    spinning = false;
-                    return;
-                }
-
-                const wheel = document.getElementById('wheel');
-                const resultIndex = options.indexOf(response.getResult());
-                const extraSpins = 5;
-                const targetAngle = -(360 * extraSpins + (resultIndex * (360 / options.length)));
-                
-                wheel.style.transform = `rotate(${targetAngle}deg)`;
-                
-                setTimeout(() => {
-                    document.getElementById('result').textContent = `Результат: ${response.getResult()}`;
-                    spinning = false;
-                }, 3000);
-            });
-        }
-
-        document.getElementById('optionInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                addOption();
-            }
-        });
-    </script>
+    <div class="result"></div>
 </body>
 </html>
