@@ -1,10 +1,12 @@
 version: '3.8'
 
 services:
-  grpc-server:
+  server:
     build:
       context: .
       dockerfile: server/Dockerfile
+    ports:
+      - "50051:50051"
     networks:
       - fun-wheel-network
 
@@ -15,18 +17,7 @@ services:
     environment:
       - BOT_TOKEN=${BOT_TOKEN}
     depends_on:
-      - grpc-server
-    networks:
-      - fun-wheel-network
-
-  envoy:
-    image: envoyproxy/envoy:v1.28-latest
-    volumes:
-      - ./envoy.yaml:/etc/envoy/envoy.yaml:ro
-    ports:
-      - "8080:8080"
-    depends_on:
-      - grpc-server
+      - server
     networks:
       - fun-wheel-network
 
@@ -37,7 +28,7 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - envoy
+      - server
     networks:
       - fun-wheel-network
 
