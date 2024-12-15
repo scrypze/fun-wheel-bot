@@ -34,7 +34,7 @@ func NewWheelService() *WheelService {
 	}
 }
 
-func (ws *WheelService) getOrCreateSession(r *http.Request) (*Session, string) {
+func (ws *WheelService) getOrCreateSession(w http.ResponseWriter, r *http.Request) (*Session, string) {
 	session, _ := ws.store.Get(r, "wheel-session")
 	
 	sessionID, ok := session.Values["id"].(string)
@@ -52,6 +52,8 @@ func (ws *WheelService) getOrCreateSession(r *http.Request) (*Session, string) {
 		}
 	}
 
+	session.Save(r, w)
+
 	return ws.sessions[sessionID], sessionID
 }
 
@@ -61,7 +63,7 @@ func (ws *WheelService) AddItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, _ := ws.getOrCreateSession(r)
+	session, _ := ws.getOrCreateSession(w, r)
 	
 	var item struct {
 		Text string `json:"text"`
@@ -84,7 +86,7 @@ func (ws *WheelService) ResetItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, _ := ws.getOrCreateSession(r)
+	session, _ := ws.getOrCreateSession(w, r)
 
 	ws.mux.Lock()
 	defer ws.mux.Unlock()
@@ -100,7 +102,7 @@ func (ws *WheelService) SpinWheel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, _ := ws.getOrCreateSession(r)
+	session, _ := ws.getOrCreateSession(w, r)
 
 	ws.mux.Lock()
 	defer ws.mux.Unlock()
@@ -129,7 +131,7 @@ func (ws *WheelService) RemoveLastWinner(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	session, _ := ws.getOrCreateSession(r)
+	session, _ := ws.getOrCreateSession(w, r)
 
 	ws.mux.Lock()
 	defer ws.mux.Unlock()
@@ -158,7 +160,7 @@ func (ws *WheelService) GetItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, _ := ws.getOrCreateSession(r)
+	session, _ := ws.getOrCreateSession(w, r)
 
 	ws.mux.RLock()
 	defer ws.mux.RUnlock()
