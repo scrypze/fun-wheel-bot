@@ -11,19 +11,48 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/gorilla/sessions"
 	"github.com/joho/godotenv"
 )
 
+type Session struct {
+	Items      []string
+	LastWinner string
+}
+
 type WheelService struct {
-	lastWinner string
-	items      []string
-	mux        sync.Mutex
+	sessions map[string]*Session
+	store    *sessions.CookieStore
+	mux      sync.RWMutex
 }
 
 func NewWheelService() *WheelService {
 	return &WheelService{
-		items: []string{},
+		sessions: make(map[string]*Session),
+		store:    sessions.NewCookieStore([]byte("secret-key")),
 	}
+}
+
+func (ws *WheelService) getOrCreateSession(r *http.Request) (*Session, string) {
+	session, _ := ws.store.Get(r, "wheel-session")
+	
+	sessionID, ok := session.Values["id"].(string)
+	if !ok {
+		sessionID = uuid.New().String()
+		session.Values["id"] = sessionID
+	}
+
+	ws.mux.Lock()
+	defer ws.mux.Unlock()
+
+	if _, exists := ws.sessions[sessionID]; !exists {
+		ws.sessions[sessionID] = &Session{
+			Items: []string{},
+		}
+	}
+
+	return ws.sessions[sessionID], sessionID
 }
 
 func (ws *WheelService) AddItem(w http.ResponseWriter, r *http.Request) {
@@ -32,6 +61,8 @@ func (ws *WheelService) AddItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	session, _ := ws.getOrCreateSession(r)
+	
 	var item struct {
 		Text string `json:"text"`
 	}
@@ -42,7 +73,7 @@ func (ws *WheelService) AddItem(w http.ResponseWriter, r *http.Request) {
 
 	ws.mux.Lock()
 	defer ws.mux.Unlock()
-	ws.items = append(ws.items, item.Text)
+	session.Items = append(session.Items, item.Text)
 	log.Printf("Added item: %s", item.Text)
 	w.WriteHeader(http.StatusOK)
 }
@@ -53,10 +84,12 @@ func (ws *WheelService) ResetItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	session, _ := ws.getOrCreateSession(r)
+
 	ws.mux.Lock()
 	defer ws.mux.Unlock()
-	ws.items = []string{}
-	ws.lastWinner = ""
+	session.Items = []string{}
+	session.LastWinner = ""
 	log.Println("Reset all items")
 	w.WriteHeader(http.StatusOK)
 }
@@ -67,21 +100,27 @@ func (ws *WheelService) SpinWheel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	session, _ := ws.getOrCreateSession(r)
+
 	ws.mux.Lock()
 	defer ws.mux.Unlock()
 
-	if len(ws.items) == 0 {
+	if len(session.Items) == 0 {
 		http.Error(w, "No items in the wheel", http.StatusBadRequest)
 		return
 	}
 
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	index := rng.Intn(len(ws.items))
-	ws.lastWinner = ws.items[index]
-	log.Printf("Wheel spun. Winner: %s", ws.lastWinner)
+	index := rng.Intn(len(session.Items))
+	session.LastWinner = session.Items[index]
+	log.Printf("Wheel spun. Winner: %s", session.LastWinner)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{"winner": ws.lastWinner, "index": index})
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"winner": session.LastWinner,
+		"index":  index,
+		"items":  session.Items,
+	})
 }
 
 func (ws *WheelService) RemoveLastWinner(w http.ResponseWriter, r *http.Request) {
@@ -90,25 +129,44 @@ func (ws *WheelService) RemoveLastWinner(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	session, _ := ws.getOrCreateSession(r)
+
 	ws.mux.Lock()
 	defer ws.mux.Unlock()
 
-	if ws.lastWinner == "" {
+	if session.LastWinner == "" {
 		http.Error(w, "No winner to remove", http.StatusBadRequest)
 		return
 	}
 
 	newItems := []string{}
-	for _, item := range ws.items {
-		if item != ws.lastWinner {
+	for _, item := range session.Items {
+		if item != session.LastWinner {
 			newItems = append(newItems, item)
 		}
 	}
 
-	ws.items = newItems
-	log.Printf("Removed last winner: %s", ws.lastWinner)
-	ws.lastWinner = ""
+	session.Items = newItems
+	log.Printf("Removed last winner: %s", session.LastWinner)
+	session.LastWinner = ""
 	w.WriteHeader(http.StatusOK)
+}
+
+func (ws *WheelService) GetItems(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	session, _ := ws.getOrCreateSession(r)
+
+	ws.mux.RLock()
+	defer ws.mux.RUnlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"items": session.Items,
+	})
 }
 
 func (ws *WheelService) ServeHTML(w http.ResponseWriter, r *http.Request) {
@@ -148,6 +206,7 @@ func main() {
 	http.HandleFunc("/reset", service.ResetItems)
 	http.HandleFunc("/spin", service.SpinWheel)
 	http.HandleFunc("/remove-winner", service.RemoveLastWinner)
+	http.HandleFunc("/items", service.GetItems)
 
 	staticDir := http.Dir("static")
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(staticDir)))

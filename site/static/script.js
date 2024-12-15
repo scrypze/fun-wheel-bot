@@ -34,16 +34,24 @@ function drawWheel() {
     });
 }
 
+async function loadItems() {
+    const response = await fetch('/get-items');
+    const data = await response.json();
+    items = data.items;
+    drawWheel();
+}
+
 async function addItem() {
-    const item = document.getElementById('item').value;
+    const input = document.getElementById('item');
+    const item = input.value;
     if (item) {
         await fetch('/add', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: item })
         });
-        items.push(item);
-        drawWheel();
+        input.value = '';
+        await loadItems();
     }
 }
 
@@ -51,14 +59,20 @@ async function resetItems() {
     await fetch('/reset', { method: 'POST' });
     items = [];
     drawWheel();
+    document.getElementById('result').innerText = '';
 }
 
 async function spinWheel() {
     if (spinning) return;
+    if (items.length === 0) {
+        alert('Добавьте элементы перед вращением!');
+        return;
+    }
 
     spinning = true;
     const response = await fetch('/spin');
     const data = await response.json();
+    items = data.items;
     const winnerIndex = items.indexOf(data.winner);
     let currentAngle = 0;
     const targetAngle = (2 * Math.PI) * 5 + winnerIndex * (2 * Math.PI / items.length);
@@ -68,7 +82,7 @@ async function spinWheel() {
         if (currentAngle >= targetAngle) {
             clearInterval(spin);
             spinning = false;
-            document.getElementById('result').innerText = `Winner: ${data.winner}`;
+            document.getElementById('result').innerText = `Победитель: ${data.winner}`;
         }
         ctx.save();
         ctx.translate(canvas.width / 2, canvas.height / 2);
@@ -81,9 +95,8 @@ async function spinWheel() {
 
 async function removeLastWinner() {
     await fetch('/remove-winner', { method: 'POST' });
-    items = items.filter(item => item !== document.getElementById('result').innerText.split(': ')[1]);
-    drawWheel();
+    await loadItems();
     document.getElementById('result').innerText = '';
 }
 
-drawWheel();
+loadItems();
