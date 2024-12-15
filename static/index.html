@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Колесо Фортуны</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+        }
+        .wheel-container {
+            margin: 20px;
+        }
+        .controls {
+            margin: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 0 5px;
+            cursor: pointer;
+        }
+        input {
+            padding: 10px;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Wheel of Fortune</h1>
+    <div class="wheel-container">
+        <canvas id="wheel" width="500" height="500"></canvas>
+    </div>
+    <div class="controls">
+        <input type="text" id="newOption" placeholder="Поражение">
+        <button id="addButton">Add</button>
+        <button id="resetButton">Reset</button>
+        <button id="spinButton">Spin</button>
+    </div>
+    <script>
+        const canvas = document.getElementById('wheel');
+        const ctx = canvas.getContext('2d');
+        let options = ['Поражение', 'Победа'];
+        let rotation = 0;
+        let isSpinning = false;
+
+        function drawWheel() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(centerX, centerY) - 10;
+
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(rotation);
+
+            const sliceAngle = (2 * Math.PI) / options.length;
+            
+            options.forEach((option, i) => {
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, radius, i * sliceAngle, (i + 1) * sliceAngle);
+                ctx.closePath();
+                
+                ctx.fillStyle = i % 2 ? '#FFD700' : '#FFA500';
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.save();
+                ctx.rotate(i * sliceAngle + sliceAngle / 2);
+                ctx.textAlign = 'right';
+                ctx.fillStyle = '#000';
+                ctx.font = '20px Arial';
+                ctx.fillText(option, radius - 20, 0);
+                ctx.restore();
+            });
+
+            ctx.restore();
+        }
+
+        document.getElementById('addButton').onclick = () => {
+            const newOption = document.getElementById('newOption').value.trim();
+            if (newOption) {
+                options.push(newOption);
+                document.getElementById('newOption').value = '';
+                drawWheel();
+            }
+        };
+
+        document.getElementById('resetButton').onclick = () => {
+            options = ['Поражение', 'Победа'];
+            rotation = 0;
+            drawWheel();
+        };
+
+        document.getElementById('spinButton').onclick = () => {
+            if (isSpinning) return;
+            isSpinning = true;
+            const spins = 5;
+            const finalAngle = spins * 2 * Math.PI + Math.random() * 2 * Math.PI;
+            let currentRotation = 0;
+
+            function animate() {
+                if (currentRotation >= finalAngle) {
+                    isSpinning = false;
+                    return;
+                }
+                currentRotation += (finalAngle - currentRotation) * 0.05;
+                rotation = currentRotation;
+                drawWheel();
+                requestAnimationFrame(animate);
+            }
+
+            animate();
+        };
+
+        drawWheel();
+    </script>
+</body>
+</html> 
