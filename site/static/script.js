@@ -82,8 +82,14 @@ async function resetItems() {
             throw new Error('Ошибка сброса элементов');
         }
         items = [];
+        spinning = false;
         drawWheel();
         document.getElementById('result').innerText = '';
+        try {
+            await fetch('/stop-spinning', { method: 'POST' });
+        } catch (error) {
+            console.error('Ошибка при остановке вращения:', error);
+        }
     } catch (error) {
         console.error('Ошибка при сбросе элементов:', error);
         alert('Не удалось сбросить элементы');
@@ -104,8 +110,13 @@ async function spinWheel() {
         spinning = true;
         const response = await fetch('/spin');
         if (!response.ok) {
+            if (response.status === 400 && await response.text() === 'Wheel is already spinning') {
+                alert('Колесо уже вращается');
+            } else {
+                throw new Error('Ошибка вращения колеса');
+            }
             spinning = false;
-            throw new Error('Ошибка вращения колеса');
+            return;
         }
         const data = await response.json();
         items = data.items;
@@ -113,12 +124,17 @@ async function spinWheel() {
         let currentAngle = 0;
         const targetAngle = (2 * Math.PI) * 5 + winnerIndex * (2 * Math.PI / items.length);
 
-        const spin = setInterval(() => {
+        const spin = setInterval(async () => {
             currentAngle += 0.1;
             if (currentAngle >= targetAngle) {
                 clearInterval(spin);
                 spinning = false;
                 document.getElementById('result').innerText = `Победитель: ${data.winner}`;
+                try {
+                    await fetch('/stop-spinning', { method: 'POST' });
+                } catch (error) {
+                    console.error('Ошибка при остановке вращения:', error);
+                }
             }
             ctx.save();
             ctx.translate(canvas.width / 2, canvas.height / 2);
@@ -131,6 +147,11 @@ async function spinWheel() {
         console.error('Ошибка при вращении колеса:', error);
         alert('Не удалось провести вращение');
         spinning = false;
+        try {
+            await fetch('/stop-spinning', { method: 'POST' });
+        } catch (stopError) {
+            console.error('Ошибка при остановке вращения:', stopError);
+        }
     }
 }
 

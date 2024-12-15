@@ -19,6 +19,7 @@ import (
 type Session struct {
 	Items      []string
 	LastWinner string
+	IsSpinning bool
 }
 
 type WheelService struct {
@@ -48,7 +49,8 @@ func (ws *WheelService) getOrCreateSession(w http.ResponseWriter, r *http.Reques
 
 	if _, exists := ws.sessions[sessionID]; !exists {
 		ws.sessions[sessionID] = &Session{
-			Items: []string{},
+			Items:      []string{},
+			IsSpinning: false,
 		}
 	}
 
@@ -107,10 +109,17 @@ func (ws *WheelService) SpinWheel(w http.ResponseWriter, r *http.Request) {
 	ws.mux.Lock()
 	defer ws.mux.Unlock()
 
+	if session.IsSpinning {
+		http.Error(w, "Wheel is already spinning", http.StatusBadRequest)
+		return
+	}
+
 	if len(session.Items) == 0 {
 		http.Error(w, "No items in the wheel", http.StatusBadRequest)
 		return
 	}
+
+	session.IsSpinning = true
 
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	index := rng.Intn(len(session.Items))
@@ -123,6 +132,21 @@ func (ws *WheelService) SpinWheel(w http.ResponseWriter, r *http.Request) {
 		"index":  index,
 		"items":  session.Items,
 	})
+}
+
+func (ws *WheelService) StopSpinning(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	session, _ := ws.getOrCreateSession(w, r)
+
+	ws.mux.Lock()
+	defer ws.mux.Unlock()
+
+	session.IsSpinning = false
+	w.WriteHeader(http.StatusOK)
 }
 
 func (ws *WheelService) RemoveLastWinner(w http.ResponseWriter, r *http.Request) {
@@ -209,6 +233,7 @@ func main() {
 	http.HandleFunc("/spin", service.SpinWheel)
 	http.HandleFunc("/remove-winner", service.RemoveLastWinner)
 	http.HandleFunc("/items", service.GetItems)
+	http.HandleFunc("/stop-spinning", service.StopSpinning)
 
 	staticDir := http.Dir("static")
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(staticDir)))
