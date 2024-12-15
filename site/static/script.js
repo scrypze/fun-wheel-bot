@@ -91,7 +91,10 @@ async function resetItems() {
 }
 
 async function spinWheel() {
-    if (spinning) return;
+    if (spinning) {
+        return;
+    }
+
     if (items.length === 0) {
         alert('Добавьте элементы перед вращением!');
         return;
@@ -101,6 +104,7 @@ async function spinWheel() {
         spinning = true;
         const response = await fetch('/spin');
         if (!response.ok) {
+            spinning = false;
             throw new Error('Ошибка вращения колеса');
         }
         const data = await response.json();
