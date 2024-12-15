@@ -152,14 +152,9 @@ func main() {
 	staticDir := http.Dir("static")
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(staticDir)))
 
-	log.Printf("Server started at https://%s", address)
-
-	// Путь к сертификатам (убедитесь, что они доступны внутри контейнера)
-	certFile := "/certs/cert.pem"
-	keyFile := "/certs/key.pem"
-
+	log.Printf("Server started at http://%s", address)
 	// Запускаем сервер с поддержкой HTTPS
-	if err := http.ListenAndServeTLS(address, certFile, keyFile, nil); err != nil {
+	if err := http.ListenAndServe(address, nil); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
 }
