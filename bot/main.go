@@ -34,7 +34,7 @@ func main() {
 	for update := range updates {
 		if update.Message != nil {
 			chatID := update.Message.Chat.ID
-			text := "Привет! Хочешь покрутить колесо? Перейди по ссылке: [Колесо](https://scrypze.ru)"
+			text := "Привет! Хочешь покрутить колесо? Перейди по ссылке: [Колесо](http://scrypze.ru)"
 			msg := tgbotapi.NewMessage(chatID, text)
 			msg.ParseMode = "Markdown"
 

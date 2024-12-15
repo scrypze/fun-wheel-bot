@@ -12,7 +12,7 @@ services:
     build:
       context: ./site
     ports:
-      - "${PORT:-8080}:8080"
+      - "80:${PORT:-8080}"
     environment:
       - HOST=${HOST:-0.0.0.0}
       - PORT=${PORT:-8080}

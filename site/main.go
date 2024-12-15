@@ -128,7 +128,7 @@ func main() {
 
 	host := os.Getenv("HOST")
 	if host == "" {
-		host = "0.0.0.0"
+		host = "localhost"
 	}
 
 	port := os.Getenv("PORT")
@@ -152,8 +152,14 @@ func main() {
 	staticDir := http.Dir("static")
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(staticDir)))
 
-	log.Printf("Server started at http://%s", address)
-	if err := http.ListenAndServe(address, nil); err != nil {
+	log.Printf("Server started at https://%s", address)
+
+	// Путь к сертификатам (убедитесь, что они доступны внутри контейнера)
+	certFile := "/certs/cert.pem"
+	keyFile := "/certs/key.pem"
+
+	// Запускаем сервер с поддержкой HTTPS
+	if err := http.ListenAndServeTLS(address, certFile, keyFile, nil); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
 }
