@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wheel of Fortune</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+  <h1>Wheel of Fortune</h1>
+  <canvas id="wheel" width="300" height="300"></canvas>
+  <div>
+    <input type="text" id="item" placeholder="Enter item">
+    <button onclick="addItem()">Add</button>
+    <button onclick="resetItems()">Reset</button>
+    <button onclick="spinWheel()">Spin</button>
+    <button onclick="removeLastWinner()">Remove Last Winner</button>
+  </div>
+  <div id="result"></div>
+  <script src="/static/script.js"></script>
+</body>
+
+</html>
