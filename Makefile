@@ -1,10 +1,10 @@
-.PHONY: run down restart
+.PHONY: up down restart
 
-run:
+up:
 	docker compose up -d --build
 
 down:
 	docker compose down
 
-restart: down run
+restart: down up
 	@echo "Контейнеры перезапущены"
