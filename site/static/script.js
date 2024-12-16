@@ -103,13 +103,7 @@ async function resetItems() {
 }
 
 async function spinWheel() {
-    if (spinning) {
-        return;
-    }
-
-    if (items.length === 0) {
-        showEmptyMessage = true;
-        drawWheel();
+    if (spinning || items.length === 0) {
         return;
     }
 
