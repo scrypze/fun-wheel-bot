@@ -214,7 +214,7 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(staticDir)))
 
 	log.Printf("Server started at http://%s", address)
-	// Запускаем сервер с поддержкой HTTPS
+
 	if err := http.ListenAndServe(address, nil); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
