@@ -2,18 +2,11 @@ const canvas = document.getElementById('wheel');
 const ctx = canvas.getContext('2d');
 let items = [];
 let spinning = false;
-let showEmptyMessage = false;
 
 function drawWheel() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     if (items.length === 0) {
-        if (showEmptyMessage) {
-            ctx.font = "20px Arial";
-            ctx.fillStyle = "#000";
-            ctx.textAlign = "center";
-            ctx.fillText("Введите варианты", canvas.width/2, canvas.height/2);
-        }
         return;
     }
 
@@ -54,7 +47,6 @@ async function loadItems() {
         }
         const data = await response.json();
         items = data.items;
-        showEmptyMessage = false;
         drawWheel();
     } catch (error) {
         console.error('Ошибка при загрузке элементов:', error);
@@ -75,7 +67,6 @@ async function addItem() {
                 throw new Error('Ошибка добавления элемента');
             }
             input.value = '';
-            showEmptyMessage = false;
             await loadItems();
             document.getElementById('result').innerText = '';
         } catch (error) {
@@ -86,14 +77,14 @@ async function addItem() {
 }
 
 async function resetItems() {
+    if (spinning) return;
+    
     try {
         const response = await fetch('/reset', { method: 'POST' });
         if (!response.ok) {
             throw new Error('Ошибка сброса элементов');
         }
         items = [];
-        spinning = false;
-        showEmptyMessage = false;
         drawWheel();
         document.getElementById('result').innerText = '';
     } catch (error) {
@@ -101,6 +92,8 @@ async function resetItems() {
         alert('Не удалось сбросить элементы');
     }
 }
+
+let currentSpinInterval = null;
 
 async function spinWheel() {
     if (spinning || items.length === 0) {
@@ -111,18 +104,25 @@ async function spinWheel() {
         spinning = true;
         const response = await fetch('/spin');
         if (!response.ok) {
+            spinning = false;
             throw new Error('Ошибка вращения колеса');
         }
+
         const data = await response.json();
         items = data.items;
         const winnerIndex = items.indexOf(data.winner);
         let currentAngle = 0;
         const targetAngle = (2 * Math.PI) * 5 + winnerIndex * (2 * Math.PI / items.length);
 
-        const spin = setInterval(() => {
+        if (currentSpinInterval) {
+            clearInterval(currentSpinInterval);
+        }
+
+        currentSpinInterval = setInterval(() => {
             currentAngle += 0.1;
             if (currentAngle >= targetAngle) {
-                clearInterval(spin);
+                clearInterval(currentSpinInterval);
+                currentSpinInterval = null;
                 spinning = false;
                 document.getElementById('result').innerText = `Победитель: ${data.winner}`;
             }
@@ -137,16 +137,21 @@ async function spinWheel() {
         console.error('Ошибка при вращении колеса:', error);
         alert('Не удалось провести вращение');
         spinning = false;
+        if (currentSpinInterval) {
+            clearInterval(currentSpinInterval);
+            currentSpinInterval = null;
+        }
     }
 }
 
 async function removeLastWinner() {
+    if (spinning) return;
+    
     try {
         const response = await fetch('/remove-winner', { method: 'POST' });
         if (!response.ok) {
             throw new Error('Ошибка удаления победителя');
         }
-        showEmptyMessage = false;
         await loadItems();
         document.getElementById('result').innerText = '';
     } catch (error) {
