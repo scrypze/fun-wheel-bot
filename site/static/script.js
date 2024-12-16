@@ -2,10 +2,18 @@ const canvas = document.getElementById('wheel');
 const ctx = canvas.getContext('2d');
 let items = [];
 let spinning = false;
+let showEmptyMessage = false;
 
 function drawWheel() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
     if (items.length === 0) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (showEmptyMessage) {
+            ctx.font = "20px Arial";
+            ctx.fillStyle = "#000";
+            ctx.textAlign = "center";
+            ctx.fillText("Введите варианты", canvas.width/2, canvas.height/2);
+        }
         return;
     }
 
@@ -13,7 +21,6 @@ function drawWheel() {
     const center = { x: radius, y: radius };
     const sliceAngle = (2 * Math.PI) / items.length;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.font = "14px Arial";
 
     items.forEach((item, i) => {
@@ -47,6 +54,7 @@ async function loadItems() {
         }
         const data = await response.json();
         items = data.items;
+        showEmptyMessage = false;
         drawWheel();
     } catch (error) {
         console.error('Ошибка при загрузке элементов:', error);
@@ -67,7 +75,9 @@ async function addItem() {
                 throw new Error('Ошибка добавления элемента');
             }
             input.value = '';
+            showEmptyMessage = false;
             await loadItems();
+            document.getElementById('result').innerText = '';
         } catch (error) {
             console.error('Ошибка при добавлении элемента:', error);
             alert('Не удалось добавить элемент');
@@ -83,13 +93,9 @@ async function resetItems() {
         }
         items = [];
         spinning = false;
+        showEmptyMessage = false;
         drawWheel();
         document.getElementById('result').innerText = '';
-        try {
-            await fetch('/stop-spinning', { method: 'POST' });
-        } catch (error) {
-            console.error('Ошибка при остановке вращения:', error);
-        }
     } catch (error) {
         console.error('Ошибка при сбросе элементов:', error);
         alert('Не удалось сбросить элементы');
@@ -102,7 +108,8 @@ async function spinWheel() {
     }
 
     if (items.length === 0) {
-        alert('Добавьте элементы перед вращением!');
+        showEmptyMessage = true;
+        drawWheel();
         return;
     }
 
@@ -110,13 +117,7 @@ async function spinWheel() {
         spinning = true;
         const response = await fetch('/spin');
         if (!response.ok) {
-            if (response.status === 400 && await response.text() === 'Wheel is already spinning') {
-                alert('Колесо уже вращается');
-            } else {
-                throw new Error('Ошибка вращения колеса');
-            }
-            spinning = false;
-            return;
+            throw new Error('Ошибка вращения колеса');
         }
         const data = await response.json();
         items = data.items;
@@ -124,17 +125,12 @@ async function spinWheel() {
         let currentAngle = 0;
         const targetAngle = (2 * Math.PI) * 5 + winnerIndex * (2 * Math.PI / items.length);
 
-        const spin = setInterval(async () => {
+        const spin = setInterval(() => {
             currentAngle += 0.1;
             if (currentAngle >= targetAngle) {
                 clearInterval(spin);
                 spinning = false;
                 document.getElementById('result').innerText = `Победитель: ${data.winner}`;
-                try {
-                    await fetch('/stop-spinning', { method: 'POST' });
-                } catch (error) {
-                    console.error('Ошибка при остановке вращения:', error);
-                }
             }
             ctx.save();
             ctx.translate(canvas.width / 2, canvas.height / 2);
@@ -147,11 +143,6 @@ async function spinWheel() {
         console.error('Ошибка при вращении колеса:', error);
         alert('Не удалось провести вращение');
         spinning = false;
-        try {
-            await fetch('/stop-spinning', { method: 'POST' });
-        } catch (stopError) {
-            console.error('Ошибка при остановке вращения:', stopError);
-        }
     }
 }
 
@@ -161,6 +152,7 @@ async function removeLastWinner() {
         if (!response.ok) {
             throw new Error('Ошибка удаления победителя');
         }
+        showEmptyMessage = false;
         await loadItems();
         document.getElementById('result').innerText = '';
     } catch (error) {
